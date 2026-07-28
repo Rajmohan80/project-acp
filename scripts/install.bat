@@ -1,0 +1,9 @@
+@echo off
+:: AbhavTech Agentic Control Plane — install (Windows Option B)
+echo [ACP] Creating virtual environment...
+py -3.11 -m venv .venv
+echo [ACP] Upgrading pip...
+.venv\Scripts\pip install --upgrade pip
+echo [ACP] Installing project and dev dependencies...
+.venv\Scripts\pip install -e ".[dev]"
+echo [ACP] Install complete. Run: .venv\Scripts\activate

@@ -1,0 +1,32 @@
+# ============================================================
+# AbhavTech Agentic Control Plane — Docker Compose
+# LAB PROTOTYPE — optional containerisation path.
+# Option B (active): services run directly via uvicorn.
+# Switch to this file when deploying to a container host.
+# ============================================================
+
+version: "3.9"
+
+services:
+
+  oauth-issuer:
+    build:
+      context: .
+      dockerfile: docker/oauth.Dockerfile
+    ports:
+      - "9000:9000"
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  mcp-server:
+    build:
+      context: .
+      dockerfile: docker/mcp.Dockerfile
+    ports:
+      - "8100:8100"
+    env_file:
+      - .env
+    depends_on:
+      - oauth-issuer
+    restart: unless-stopped

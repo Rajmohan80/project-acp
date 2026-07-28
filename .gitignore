@@ -1,0 +1,33 @@
+# Secrets — never committed
+.env
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Virtual environment
+.venv/
+
+# Python artefacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Test / coverage artefacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Audit log — runtime artefact, not source
+audit.log
+
+# Editor
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store

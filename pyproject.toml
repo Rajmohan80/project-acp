@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentic-control-plane"
+version = "0.1.0"
+description = "AbhavTech Agentic Control Plane — lab prototype"
+requires-python = "==3.11.*"
+
+dependencies = [
+    # Config / secrets
+    "python-dotenv>=1.0.0",
+
+    # Structured logging
+    "structlog>=24.1.0",
+
+    # MCP server
+    "fastmcp>=2.0.0",
+
+    # OAuth issuer + MCP HTTP transport
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.29.0",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+
+    # HTTP client (tool calls, A2A boundary later)
+    "httpx>=0.27.0",
+
+    # Data validation
+    "pydantic>=2.7.0",
+    "pydantic-settings>=2.2.0",
+
+    # Audit trail persistence
+    "tinydb>=4.8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "httpx>=0.27.0",
+    "ruff>=0.4.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
