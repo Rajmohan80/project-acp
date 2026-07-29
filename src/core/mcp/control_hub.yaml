@@ -1,0 +1,34 @@
+# ============================================================
+# AbhavTech Agentic Control Plane — Control Hub
+# LAB PROTOTYPE — not production ready.
+#
+# Mirrors Cisco Webex Control Hub Agentic Apps provisioning.
+# Each tool is listed as Allowed or Blocked per user group.
+# The MCP server reads this at startup — no code change needed
+# to change governance policy.
+# ============================================================
+
+tools:
+  echo:
+    description: "Demo echo tool — proves governance before real tools exist"
+    required_scope: "knowledge:read"
+    groups:
+      admins:    Allowed
+      engineers: Allowed
+      viewers:   Blocked
+
+  diagnostics_run:
+    description: "Run a diagnostic check — placeholder for Phase 1"
+    required_scope: "diagnostics:run"
+    groups:
+      admins:    Allowed
+      engineers: Blocked
+      viewers:   Blocked
+
+  actions_execute:
+    description: "Execute an action — placeholder for Phase 1"
+    required_scope: "actions:execute"
+    groups:
+      admins:    Allowed
+      engineers: Allowed
+      viewers:   Blocked
