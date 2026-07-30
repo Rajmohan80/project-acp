@@ -26,6 +26,7 @@ from src.core.audit.writer import AuditOutcome, RefusalReason, write_audit
 from src.core.common.config import get_settings
 from src.core.common.logging import configure_logging, get_logger
 from src.core.mcp.oauth.issuer import decode_token
+from src.domains.contact_center.tool import run_search
 
 configure_logging()
 log = get_logger(__name__)
@@ -177,6 +178,19 @@ def echo(message: str, token: str) -> dict:
         "echo": message,
         "detail": "Tool call allowed — governance passed",
     }
+
+
+@mcp.tool()
+def search_wxcc_corpus(query: str, token: str, k: int = 5) -> dict:
+    """
+    Search the WxCC SLM corpus for relevant chunks.
+    Requires scope: knowledge:read
+    Blocked for group: viewers
+    """
+    return run_search(
+        query=query, token=token, k=k,
+        check_governance=_check_governance,
+    )
 
 
 # ------------------------------------------------------------------ #

@@ -50,6 +50,8 @@ class Settings(BaseSettings):
     # Domain secrets — optional in Phase 0, populated in later phases
     qdrant_url: str | None = None
     qdrant_api_key: str | None = None
+    qdrant_collection: str = "wxcc_slm_corpus"   # Track C — WxCC corpus
+    hf_home: str | None = None                    # BGE-M3 cache dir
     groq_api_key: str | None = None
     anthropic_api_key: str | None = None
 

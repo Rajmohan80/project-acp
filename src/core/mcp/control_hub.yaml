@@ -32,3 +32,11 @@ tools:
       admins:    Allowed
       engineers: Allowed
       viewers:   Blocked
+
+  search_wxcc_corpus:
+    description: "Search the WxCC SLM corpus (Qdrant) — Track C, first real domain tool"
+    required_scope: "knowledge:read"
+    groups:
+      admins:    Allowed
+      engineers: Allowed
+      viewers:   Blocked
