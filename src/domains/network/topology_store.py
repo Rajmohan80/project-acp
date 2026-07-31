@@ -266,3 +266,100 @@ def bfs_path(
         "destination": destination,
         "reason":      f"No path found between '{source}' and '{destination}'.",
     }
+
+
+# ------------------------------------------------------------------ #
+# Block 4 — node role lookup
+# ------------------------------------------------------------------ #
+
+def get_node(topology: dict, node_id: str) -> dict:
+    """
+    Look up a node by ID (case-insensitive) and return its full
+    profile plus all directly connected peers.
+
+    Returns a plain dict:
+        Found:
+          {
+            "found": True,
+            "node_id": "hq-cedge-01",
+            "label": "HQ-cEdge-01",
+            "role": "sd-wan-edge",
+            "sd_wan_role": "hub",          # only for sd-wan-edge nodes
+            "site": "hq",
+            "device_type": "cEdge",
+            "platform": "Cisco ISR4451...",
+            "wan_transports": ["mpls","internet"],  # only for sd-wan-edge
+            "description": "...",
+            "peer_count": 5,
+            "peers": [
+              {"node_id": ..., "label": ..., "link_type": ..., "link_id": ...},
+              ...
+            ]
+          }
+        Not found:
+          {"found": False, "node_id": ..., "reason": ...,
+           "available_nodes": [...]}
+    """
+    nid = node_id.lower()
+
+    # Build id→node map
+    id_to_node: dict[str, dict] = {
+        n["id"].lower(): n for n in topology.get("nodes", [])
+    }
+    id_to_label: dict[str, str] = {
+        k: v.get("label", v["id"]) for k, v in id_to_node.items()
+    }
+
+    if nid not in id_to_node:
+        return {
+            "found":           False,
+            "node_id":         node_id,
+            "reason":          f"Node '{node_id}' not found in topology.",
+            "available_nodes": sorted(id_to_label.values()),
+        }
+
+    node = id_to_node[nid]
+
+    # Collect peers from links
+    peers: list[dict] = []
+    for lk in topology.get("links", []):
+        a = lk["from"].lower()
+        b = lk["to"].lower()
+        lt  = lk.get("type", "unknown")
+        lid = lk.get("id", "")
+
+        if a == nid and b in id_to_label:
+            peers.append({
+                "node_id":   b,
+                "label":     id_to_label[b],
+                "link_type": lt,
+                "link_id":   lid,
+            })
+        elif b == nid and a in id_to_label:
+            peers.append({
+                "node_id":   a,
+                "label":     id_to_label[a],
+                "link_type": lt,
+                "link_id":   lid,
+            })
+
+    result: dict = {
+        "found":       True,
+        "node_id":     nid,
+        "label":       node.get("label", node["id"]),
+        "role":        node.get("role", "unknown"),
+        "site":        node.get("site", ""),
+        "device_type": node.get("device_type", ""),
+        "platform":    node.get("platform", ""),
+        "description": node.get("description", ""),
+        "peer_count":  len(peers),
+        "peers":       peers,
+    }
+
+    # SD-WAN-specific fields — only present for edge nodes
+    if node.get("sd_wan_role"):
+        result["sd_wan_role"]    = node["sd_wan_role"]
+    if node.get("wan_transports"):
+        result["wan_transports"] = node["wan_transports"]
+
+    return result

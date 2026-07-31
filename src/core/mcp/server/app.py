@@ -27,7 +27,11 @@ from src.core.common.config import get_settings
 from src.core.common.logging import configure_logging, get_logger
 from src.core.mcp.oauth.issuer import decode_token
 from src.domains.contact_center.tool import run_search
-from src.domains.network.tool import run_describe_topology, run_find_path
+from src.domains.network.tool import (
+    run_describe_topology,
+    run_find_path,
+    run_check_device_role,
+)
 
 configure_logging()
 log = get_logger(__name__)
@@ -234,6 +238,25 @@ def find_path(
     return run_find_path(
         source=source,
         destination=destination,
+        token=token,
+        topology_name=topology_name,
+        check_governance=_check_governance,
+    )
+
+
+@mcp.tool()
+def check_device_role(
+    node: str,
+    token: str,
+    topology_name: str = "sample_sdwan_branch",
+) -> dict:
+    """
+    Return role, site, platform and peer connections for a named node.
+    Requires scope: knowledge:read
+    Blocked for group: viewers
+    """
+    return run_check_device_role(
+        node=node,
         token=token,
         topology_name=topology_name,
         check_governance=_check_governance,

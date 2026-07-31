@@ -38,7 +38,11 @@ from jose import jwt  # noqa: E402
 from src.core.common.config import get_settings  # noqa: E402
 from src.core.mcp.oauth.issuer import GROUP_SCOPES  # noqa: E402
 from src.core.mcp.server.app import _check_governance  # noqa: E402
-from src.domains.network.tool import run_describe_topology, run_find_path  # noqa: E402
+from src.domains.network.tool import (  # noqa: E402
+    run_describe_topology,
+    run_find_path,
+    run_check_device_role,
+)
 
 
 def _mint(username: str, group: str) -> str:
@@ -134,6 +138,41 @@ def _print_path(result: dict) -> None:
         print(f"  {prefix}  {hop['label']}{link_info}")
 
 
+def _print_device(result: dict) -> None:
+    """Pretty-print a check_device_role result."""
+    print(f"  allowed        : {result.get('allowed')}")
+
+    if not result.get("allowed"):
+        print(f"  refusal_reason : {result.get('refusal_reason')}")
+        print(f"  detail         : {result.get('detail')}")
+        return
+
+    if result.get("error"):
+        print(f"  ERROR          : {result['error']}")
+        return
+
+    d = result.get("device", {})
+    if not d.get("found"):
+        print(f"  found          : False")
+        print(f"  reason         : {d.get('reason')}")
+        print(f"  available      : {d.get('available_nodes')}")
+        return
+
+    print(f"  node           : {d.get('label')}")
+    print(f"  role           : {d.get('role')}")
+    if d.get("sd_wan_role"):
+        print(f"  sd_wan_role    : {d.get('sd_wan_role')}")
+    if d.get("wan_transports"):
+        print(f"  wan_transports : {d.get('wan_transports')}")
+    print(f"  site           : {d.get('site')}")
+    print(f"  device_type    : {d.get('device_type')}")
+    print(f"  platform       : {d.get('platform')}")
+    print(f"  description    : {d.get('description')}")
+    print(f"\n  Peers ({d.get('peer_count', 0)}):")
+    for p in d.get("peers", []):
+        print(f"    {p['label']:<28} via {p['link_type']}")
+
+
 def main() -> None:
     print("\nACP Block 2 — Track N: describe_topology demo")
     print(f"Topology       : sample_sdwan_branch")
@@ -189,11 +228,37 @@ def main() -> None:
     print("=" * 70)
     _print_path(result_path_blocked)
 
+    # RUN 5 — check_device_role engineers (ALLOWED)
+    eng_token3 = _mint("demo.engineer", "engineers")
+    result_role = run_check_device_role(
+        node="hq-cedge-01",
+        token=eng_token3,
+        check_governance=_check_governance,
+    )
+    print("\n" + "=" * 70)
+    print("  RUN 5 — check_device_role: hq-cedge-01 (ALLOWED)")
+    print("=" * 70)
+    _print_device(result_role)
+
+    # RUN 6 — check_device_role viewers (BLOCKED)
+    view_token3 = _mint("demo.viewer", "viewers")
+    result_role_blocked = run_check_device_role(
+        node="hq-cedge-01",
+        token=view_token3,
+        check_governance=_check_governance,
+    )
+    print("\n" + "=" * 70)
+    print("  RUN 6 — check_device_role: viewers token (expect BLOCKED)")
+    print("=" * 70)
+    _print_device(result_role_blocked)
+
     print("\n" + "=" * 70)
     print(f"  Audit lines written to: audit.readable.log")
     print(f"  Expect: ALLOWED + REFUSED for describe_topology")
     print(f"          ALLOWED + REFUSED for find_path")
-    print(f"          find_path uses scope=diagnostics:run (different from describe_topology)")
+    print(f"          ALLOWED + REFUSED for check_device_role")
+    print(f"  Three tools, two scopes (knowledge:read + diagnostics:run)")
+    print(f"  Six governance decisions, all audited.")
     print("=" * 70 + "\n")
 
 

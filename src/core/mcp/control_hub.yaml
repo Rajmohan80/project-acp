@@ -56,3 +56,11 @@ tools:
       admins:    Allowed
       engineers: Allowed
       viewers:   Blocked
+
+  check_device_role:
+    description: "Return role, site, platform and peer connections for a named node"
+    required_scope: "knowledge:read"
+    groups:
+      admins:    Allowed
+      engineers: Allowed
+      viewers:   Blocked

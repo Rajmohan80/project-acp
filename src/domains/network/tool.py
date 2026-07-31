@@ -155,3 +155,76 @@ def run_find_path(
         "path_result": result,
         "detail":      "Tool call allowed — governance passed",
     }
+
+
+# ------------------------------------------------------------------ #
+# Block 4 — check_device_role
+# ------------------------------------------------------------------ #
+
+TOOL_CHECK_ROLE = "check_device_role"
+
+
+def run_check_device_role(
+    node: str,
+    token: str,
+    topology_name: str = "sample_sdwan_branch",
+    *,
+    check_governance,
+) -> dict:
+    """
+    Governed device role lookup tool.
+
+    Returns the role, site, platform, description, and all directly
+    connected peers for a named node. Useful for change impact analysis
+    and design validation — answers "what does this device do and
+    what is it connected to?"
+
+    Requires scope: knowledge:read
+    Blocked for group: viewers
+
+    Args:
+        node:             Node ID to look up (case-insensitive)
+        token:            JWT bearer token
+        topology_name:    Topology to search (default: sample_sdwan_branch)
+        check_governance: Injected from app.py
+
+    Returns:
+        Refused: {"allowed": False, "refusal_reason": ..., "detail": ...}
+        Allowed: {"allowed": True, "device": <node profile dict>}
+    """
+    allowed, reason, detail, presented, required = check_governance(
+        token=token,
+        tool_name=TOOL_CHECK_ROLE,
+    )
+
+    if not allowed:
+        return {
+            "allowed":        False,
+            "refusal_reason": reason.value,
+            "detail":         detail,
+        }
+
+    try:
+        topo   = topology_store.get_topology(topology_name)
+        device = topology_store.get_node(topo, node)
+    except RuntimeError as exc:
+        log.error("check_device_role_error", error=str(exc))
+        return {
+            "allowed": True,
+            "error":   str(exc),
+            "device":  None,
+        }
+
+    log.info(
+        "check_device_role_done",
+        node=node,
+        found=device.get("found"),
+        role=device.get("role"),
+        peers=device.get("peer_count"),
+    )
+
+    return {
+        "allowed": True,
+        "device":  device,
+        "detail":  "Tool call allowed — governance passed",
+    }
