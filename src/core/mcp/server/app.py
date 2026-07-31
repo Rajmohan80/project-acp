@@ -2,7 +2,7 @@
 AbhavTech Agentic Control Plane — governed MCP server.
 LAB PROTOTYPE — not production ready.
 
-FastMCP server hosting one demo tool (echo).
+FastMCP server hosting governed tools across Track C and Track N.
 Enforces two distinct refusal types on every call:
   A — tool Blocked in control_hub.yaml for the caller's group
   B — token missing the required scope for the tool
@@ -27,6 +27,7 @@ from src.core.common.config import get_settings
 from src.core.common.logging import configure_logging, get_logger
 from src.core.mcp.oauth.issuer import decode_token
 from src.domains.contact_center.tool import run_search
+from src.domains.network.tool import run_describe_topology
 
 configure_logging()
 log = get_logger(__name__)
@@ -154,6 +155,10 @@ mcp = FastMCP(
 )
 
 
+# ------------------------------------------------------------------ #
+# Demo tool
+# ------------------------------------------------------------------ #
+
 @mcp.tool()
 def echo(message: str, token: str) -> dict:
     """
@@ -180,6 +185,10 @@ def echo(message: str, token: str) -> dict:
     }
 
 
+# ------------------------------------------------------------------ #
+# Track C — Contact Center domain
+# ------------------------------------------------------------------ #
+
 @mcp.tool()
 def search_wxcc_corpus(query: str, token: str, k: int = 5) -> dict:
     """
@@ -189,6 +198,23 @@ def search_wxcc_corpus(query: str, token: str, k: int = 5) -> dict:
     """
     return run_search(
         query=query, token=token, k=k,
+        check_governance=_check_governance,
+    )
+
+
+# ------------------------------------------------------------------ #
+# Track N — Network domain
+# ------------------------------------------------------------------ #
+
+@mcp.tool()
+def describe_topology(name: str, token: str) -> dict:
+    """
+    Describe a network topology — nodes, links, sites, SD-WAN edges.
+    Requires scope: knowledge:read
+    Blocked for group: viewers
+    """
+    return run_describe_topology(
+        name=name, token=token,
         check_governance=_check_governance,
     )
 

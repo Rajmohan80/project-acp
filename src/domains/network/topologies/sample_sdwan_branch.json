@@ -1,0 +1,200 @@
+{
+  "name": "sample_sdwan_branch",
+  "description": "AbhavTech lab — SD-WAN fabric with HQ 3-tier LAN and single Mumbai branch",
+  "version": "1.0",
+  "platform": "Cisco SD-WAN (Viptela / IOS-XE)",
+  "sites": {
+    "controllers": {
+      "description": "SD-WAN control plane — hosted in HQ data centre",
+      "location": "HQ-DC"
+    },
+    "hq": {
+      "description": "HQ campus — 3-tier LAN behind SD-WAN hub edge",
+      "location": "HQ-Campus"
+    },
+    "branch-mumbai": {
+      "description": "Mumbai branch office — single collapsed switch behind SD-WAN spoke edge",
+      "location": "Mumbai-IN"
+    }
+  },
+  "nodes": [
+    {
+      "id": "vmanage-01",
+      "label": "vManage-01",
+      "site": "controllers",
+      "role": "sd-wan-controller",
+      "plane": "management",
+      "device_type": "vManage",
+      "platform": "Cisco vManage 20.x",
+      "description": "SD-WAN management plane — single pane of glass for configuration, monitoring, policy"
+    },
+    {
+      "id": "vbond-01",
+      "label": "vBond-01",
+      "site": "controllers",
+      "role": "sd-wan-orchestrator",
+      "plane": "control",
+      "device_type": "vBond",
+      "platform": "Cisco vBond 20.x",
+      "description": "SD-WAN orchestrator — authenticates edges, facilitates NAT traversal, distributes vSmart addresses"
+    },
+    {
+      "id": "vsmart-01",
+      "label": "vSmart-01",
+      "site": "controllers",
+      "role": "sd-wan-controller",
+      "plane": "control",
+      "device_type": "vSmart",
+      "platform": "Cisco vSmart 20.x",
+      "description": "SD-WAN control plane — distributes OMP routes and data policies to all edges"
+    },
+    {
+      "id": "hq-cedge-01",
+      "label": "HQ-cEdge-01",
+      "site": "hq",
+      "role": "sd-wan-edge",
+      "plane": "data",
+      "sd_wan_role": "hub",
+      "device_type": "cEdge",
+      "platform": "Cisco ISR4451 IOS-XE SD-WAN",
+      "wan_transports": ["mpls", "internet"],
+      "description": "HQ hub edge — dual-transport (MPLS + internet), terminates OMP tunnels from all spokes"
+    },
+    {
+      "id": "hq-core-sw-01",
+      "label": "HQ-Core-SW-01",
+      "site": "hq",
+      "role": "core",
+      "plane": "data",
+      "device_type": "switch",
+      "platform": "Cisco Catalyst 9500",
+      "layer": 3,
+      "description": "HQ core switch — Layer 3 routing, uplink to HQ-cEdge-01, downlinks to distribution"
+    },
+    {
+      "id": "hq-dist-sw-01",
+      "label": "HQ-Dist-SW-01",
+      "site": "hq",
+      "role": "distribution",
+      "plane": "data",
+      "device_type": "switch",
+      "platform": "Cisco Catalyst 9300",
+      "layer": 3,
+      "description": "HQ distribution switch — inter-VLAN routing, uplink to core, downlinks to access"
+    },
+    {
+      "id": "hq-access-sw-01",
+      "label": "HQ-Access-SW-01",
+      "site": "hq",
+      "role": "access",
+      "plane": "data",
+      "device_type": "switch",
+      "platform": "Cisco Catalyst 9200",
+      "layer": 2,
+      "description": "HQ access switch — end-device connectivity, PoE for IP phones and APs"
+    },
+    {
+      "id": "branch-cedge-01",
+      "label": "Branch-cEdge-01",
+      "site": "branch-mumbai",
+      "role": "sd-wan-edge",
+      "plane": "data",
+      "sd_wan_role": "spoke",
+      "device_type": "cEdge",
+      "platform": "Cisco ISR1100 IOS-XE SD-WAN",
+      "wan_transports": ["mpls", "internet"],
+      "description": "Mumbai spoke edge — dual-transport, OMP tunnel to HQ-cEdge-01, LAN to Branch-SW-01"
+    },
+    {
+      "id": "branch-sw-01",
+      "label": "Branch-SW-01",
+      "site": "branch-mumbai",
+      "role": "access",
+      "plane": "data",
+      "device_type": "switch",
+      "platform": "Cisco Catalyst 9200L",
+      "layer": 2,
+      "description": "Mumbai branch collapsed switch — single switch serving access and distribution, uplink to Branch-cEdge-01"
+    }
+  ],
+  "links": [
+    {
+      "id": "link-01",
+      "from": "vmanage-01",
+      "to": "hq-cedge-01",
+      "type": "management",
+      "description": "vManage NETCONF/HTTPS management to HQ edge"
+    },
+    {
+      "id": "link-02",
+      "from": "vmanage-01",
+      "to": "branch-cedge-01",
+      "type": "management",
+      "description": "vManage NETCONF/HTTPS management to branch edge"
+    },
+    {
+      "id": "link-03",
+      "from": "vbond-01",
+      "to": "hq-cedge-01",
+      "type": "control",
+      "description": "vBond DTLS orchestration to HQ edge"
+    },
+    {
+      "id": "link-04",
+      "from": "vbond-01",
+      "to": "branch-cedge-01",
+      "type": "control",
+      "description": "vBond DTLS orchestration to branch edge"
+    },
+    {
+      "id": "link-05",
+      "from": "vsmart-01",
+      "to": "hq-cedge-01",
+      "type": "control",
+      "description": "vSmart OMP control plane to HQ edge"
+    },
+    {
+      "id": "link-06",
+      "from": "vsmart-01",
+      "to": "branch-cedge-01",
+      "type": "control",
+      "description": "vSmart OMP control plane to branch edge"
+    },
+    {
+      "id": "link-07",
+      "from": "hq-cedge-01",
+      "to": "branch-cedge-01",
+      "type": "omp-tunnel",
+      "transports": ["mpls", "internet"],
+      "description": "OMP data plane tunnel HQ hub to Mumbai spoke — dual transport"
+    },
+    {
+      "id": "link-08",
+      "from": "hq-cedge-01",
+      "to": "hq-core-sw-01",
+      "type": "lan",
+      "description": "HQ edge to core switch — routed LAN uplink"
+    },
+    {
+      "id": "link-09",
+      "from": "hq-core-sw-01",
+      "to": "hq-dist-sw-01",
+      "type": "lan",
+      "description": "Core to distribution — Layer 3 downlink"
+    },
+    {
+      "id": "link-10",
+      "from": "hq-dist-sw-01",
+      "to": "hq-access-sw-01",
+      "type": "lan",
+      "description": "Distribution to access — trunk downlink"
+    },
+    {
+      "id": "link-11",
+      "from": "branch-cedge-01",
+      "to": "branch-sw-01",
+      "type": "lan",
+      "description": "Branch edge to collapsed switch — routed LAN uplink"
+    }
+  ]
+}

@@ -40,3 +40,11 @@ tools:
       admins:    Allowed
       engineers: Allowed
       viewers:   Blocked
+
+  describe_topology:
+    description: "Describe a CML/SD-WAN topology — nodes, links, sites, SD-WAN edges"
+    required_scope: "knowledge:read"
+    groups:
+      admins:    Allowed
+      engineers: Allowed
+      viewers:   Blocked
