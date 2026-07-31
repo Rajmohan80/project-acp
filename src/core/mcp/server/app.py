@@ -20,7 +20,7 @@ from jose import JWTError
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import JSONResponse
-from starlette.routing import Route
+from starlette.routing import Mount, Route
 
 from src.core.audit.writer import AuditOutcome, RefusalReason, write_audit
 from src.core.common.config import get_settings
@@ -271,8 +271,12 @@ async def health(request: Request) -> JSONResponse:
     return JSONResponse({"status": "ok", "service": "acp-mcp-server"})
 
 
-app = Starlette(
-    routes=[Route("/health", health)],
-)
-
+# mcp_app must be created BEFORE app so it can be mounted
 mcp_app = mcp.http_app(path="/mcp")
+
+app = Starlette(
+    routes=[
+        Route("/health", health),
+        Mount("/mcp", app=mcp_app),
+    ],
+)
