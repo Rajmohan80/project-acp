@@ -38,7 +38,7 @@ from jose import jwt  # noqa: E402
 from src.core.common.config import get_settings  # noqa: E402
 from src.core.mcp.oauth.issuer import GROUP_SCOPES  # noqa: E402
 from src.core.mcp.server.app import _check_governance  # noqa: E402
-from src.domains.network.tool import run_describe_topology  # noqa: E402
+from src.domains.network.tool import run_describe_topology, run_find_path  # noqa: E402
 
 
 def _mint(username: str, group: str) -> str:
@@ -101,6 +101,39 @@ def _print_topology(result: dict) -> None:
         )
 
 
+def _print_path(result: dict) -> None:
+    """Pretty-print a find_path result."""
+    print(f"  allowed        : {result.get('allowed')}")
+
+    if not result.get("allowed"):
+        print(f"  refusal_reason : {result.get('refusal_reason')}")
+        print(f"  detail         : {result.get('detail')}")
+        return
+
+    if result.get("error"):
+        print(f"  ERROR          : {result['error']}")
+        return
+
+    pr = result.get("path_result", {})
+    if not pr.get("found"):
+        print(f"  found          : False")
+        print(f"  reason         : {pr.get('reason')}")
+        return
+
+    print(f"  found          : True")
+    print(f"  source         : {pr.get('source')}")
+    print(f"  destination    : {pr.get('destination')}")
+    print(f"  hops           : {pr.get('hop_count')}")
+    print(f"  link types     : {' → '.join(pr.get('link_types_crossed', []))}")
+    print()
+    print("  Path:")
+    for i, hop in enumerate(pr.get("path", [])):
+        prefix = "  START" if i == 0 else f"  HOP {i}  "
+        lt = hop.get("via_link_type")
+        link_info = f"  ← via {lt}" if lt else ""
+        print(f"  {prefix}  {hop['label']}{link_info}")
+
+
 def main() -> None:
     print("\nACP Block 2 — Track N: describe_topology demo")
     print(f"Topology       : sample_sdwan_branch")
@@ -130,10 +163,37 @@ def main() -> None:
     print("=" * 70)
     _print_topology(result_blocked)
 
+    # RUN 3 — find_path engineers (ALLOWED)
+    eng_token2 = _mint("demo.engineer", "engineers")
+    result_path = run_find_path(
+        source="branch-sw-01",
+        destination="hq-core-sw-01",
+        token=eng_token2,
+        check_governance=_check_governance,
+    )
+    print("\n" + "=" * 70)
+    print("  RUN 3 — find_path: branch-sw-01 → hq-core-sw-01 (ALLOWED)")
+    print("=" * 70)
+    _print_path(result_path)
+
+    # RUN 4 — find_path viewers (BLOCKED)
+    view_token2 = _mint("demo.viewer", "viewers")
+    result_path_blocked = run_find_path(
+        source="branch-sw-01",
+        destination="hq-core-sw-01",
+        token=view_token2,
+        check_governance=_check_governance,
+    )
+    print("\n" + "=" * 70)
+    print("  RUN 4 — find_path: viewers token (expect BLOCKED)")
+    print("=" * 70)
+    _print_path(result_path_blocked)
+
     print("\n" + "=" * 70)
     print(f"  Audit lines written to: audit.readable.log")
-    print(f"  Expect: one ALLOWED and one REFUSED(TOOL_BLOCKED_IN_CONTROL_HUB)")
-    print(f"          for tool=describe_topology")
+    print(f"  Expect: ALLOWED + REFUSED for describe_topology")
+    print(f"          ALLOWED + REFUSED for find_path")
+    print(f"          find_path uses scope=diagnostics:run (different from describe_topology)")
     print("=" * 70 + "\n")
 
 

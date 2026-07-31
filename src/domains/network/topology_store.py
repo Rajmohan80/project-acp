@@ -121,3 +121,148 @@ def summarise(topology: dict) -> dict:
         "sd_wan_edges": sd_wan_edges,
         "nodes":       node_list,
     }
+
+
+# ------------------------------------------------------------------ #
+# Block 3 — graph builder + BFS path finder
+# ------------------------------------------------------------------ #
+
+def build_graph(topology: dict) -> dict:
+    """
+    Build a bidirectional adjacency map from topology links.
+
+    Returns:
+        {
+          "node_id": [
+            {"neighbour": "other_id", "link_type": "lan", "link_id": "link-08"},
+            ...
+          ],
+          ...
+        }
+
+    Links are bidirectional — if A→B exists, B→A is also added.
+    Node IDs are normalised to lowercase for case-insensitive lookup.
+    """
+    # Build id→label map for readable output
+    id_to_label: dict[str, str] = {}
+    for n in topology.get("nodes", []):
+        id_to_label[n["id"].lower()] = n.get("label", n["id"])
+
+    graph: dict[str, list[dict]] = {nid: [] for nid in id_to_label}
+
+    for lk in topology.get("links", []):
+        a = lk["from"].lower()
+        b = lk["to"].lower()
+        lt = lk.get("type", "unknown")
+        lid = lk.get("id", "")
+
+        if a in graph:
+            graph[a].append({"neighbour": b, "link_type": lt, "link_id": lid})
+        if b in graph:
+            graph[b].append({"neighbour": a, "link_type": lt, "link_id": lid})
+
+    return {"adjacency": graph, "id_to_label": id_to_label}
+
+
+def bfs_path(
+    graph_data: dict,
+    source: str,
+    destination: str,
+) -> dict:
+    """
+    BFS shortest-hop path between source and destination node IDs.
+    Node IDs are matched case-insensitively.
+
+    Returns a plain dict:
+        Found:
+          {
+            "found": True,
+            "source": "branch-sw-01",
+            "destination": "hq-core-sw-01",
+            "hop_count": 4,
+            "path": [
+              {"node_id": ..., "label": ..., "via_link_type": ..., "via_link_id": ...},
+              ...
+            ]
+          }
+        Not found:
+          {"found": False, "source": ..., "destination": ..., "reason": ...}
+    """
+    adjacency   = graph_data["adjacency"]
+    id_to_label = graph_data["id_to_label"]
+
+    src  = source.lower()
+    dest = destination.lower()
+
+    if src not in adjacency:
+        return {
+            "found":       False,
+            "source":      source,
+            "destination": destination,
+            "reason":      f"Source node '{source}' not found in topology.",
+        }
+    if dest not in adjacency:
+        return {
+            "found":       False,
+            "source":      source,
+            "destination": destination,
+            "reason":      f"Destination node '{destination}' not found in topology.",
+        }
+    if src == dest:
+        return {
+            "found":       True,
+            "source":      source,
+            "destination": destination,
+            "hop_count":   0,
+            "path": [{"node_id": src, "label": id_to_label[src],
+                      "via_link_type": None, "via_link_id": None}],
+        }
+
+    # BFS — track (node, link_type, link_id) so we can report link types crossed
+    from collections import deque
+    visited: set[str] = {src}
+    # queue items: (current_node, path_so_far)
+    # path entry: (node_id, arrived_via_link_type, arrived_via_link_id)
+    queue: deque = deque()
+    queue.append((src, [(src, None, None)]))
+
+    while queue:
+        current, path = queue.popleft()
+        for edge in adjacency.get(current, []):
+            nb  = edge["neighbour"]
+            lt  = edge["link_type"]
+            lid = edge["link_id"]
+            if nb in visited:
+                continue
+            new_path = path + [(nb, lt, lid)]
+            if nb == dest:
+                # Build readable path list
+                path_list = []
+                for node_id, via_lt, via_lid in new_path:
+                    path_list.append({
+                        "node_id":       node_id,
+                        "label":         id_to_label.get(node_id, node_id),
+                        "via_link_type": via_lt,
+                        "via_link_id":   via_lid,
+                    })
+                link_types_crossed = list(dict.fromkeys(
+                    e["via_link_type"] for e in path_list
+                    if e["via_link_type"] is not None
+                ))
+                return {
+                    "found":               True,
+                    "source":              source,
+                    "destination":         destination,
+                    "hop_count":           len(path_list) - 1,
+                    "path":                path_list,
+                    "link_types_crossed":  link_types_crossed,
+                }
+            visited.add(nb)
+            queue.append((nb, new_path))
+
+    return {
+        "found":       False,
+        "source":      source,
+        "destination": destination,
+        "reason":      f"No path found between '{source}' and '{destination}'.",
+    }

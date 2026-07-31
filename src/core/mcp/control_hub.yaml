@@ -48,3 +48,11 @@ tools:
       admins:    Allowed
       engineers: Allowed
       viewers:   Blocked
+
+  find_path:
+    description: "Find shortest L3 hop path between two nodes in a topology"
+    required_scope: "diagnostics:run"
+    groups:
+      admins:    Allowed
+      engineers: Allowed
+      viewers:   Blocked

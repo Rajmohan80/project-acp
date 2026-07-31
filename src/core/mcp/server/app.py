@@ -27,7 +27,7 @@ from src.core.common.config import get_settings
 from src.core.common.logging import configure_logging, get_logger
 from src.core.mcp.oauth.issuer import decode_token
 from src.domains.contact_center.tool import run_search
-from src.domains.network.tool import run_describe_topology
+from src.domains.network.tool import run_describe_topology, run_find_path
 
 configure_logging()
 log = get_logger(__name__)
@@ -215,6 +215,27 @@ def describe_topology(name: str, token: str) -> dict:
     """
     return run_describe_topology(
         name=name, token=token,
+        check_governance=_check_governance,
+    )
+
+
+@mcp.tool()
+def find_path(
+    source: str,
+    destination: str,
+    token: str,
+    topology_name: str = "sample_sdwan_branch",
+) -> dict:
+    """
+    Find the shortest L3 hop path between two nodes in a topology.
+    Requires scope: diagnostics:run
+    Blocked for group: viewers
+    """
+    return run_find_path(
+        source=source,
+        destination=destination,
+        token=token,
+        topology_name=topology_name,
         check_governance=_check_governance,
     )
 
