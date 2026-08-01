@@ -30,4 +30,13 @@ audit.log
 
 # OS
 Thumbs.db
-.DS_Store
+.DS_Store 
+# Runtime logs 
+# Runtime logs 
+# Runtime logs 
+audit.readable.log 
+# Temp files 
+outputs.rtf 
+~$*.rtf 
+demo.log 
+demo_network.log 
