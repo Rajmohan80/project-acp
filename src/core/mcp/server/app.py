@@ -271,12 +271,14 @@ async def health(request: Request) -> JSONResponse:
     return JSONResponse({"status": "ok", "service": "acp-mcp-server"})
 
 
-# mcp_app must be created BEFORE app so it can be mounted
-mcp_app = mcp.http_app(path="/mcp")
+# mcp_app serves at its own root ("/"); mounting at "/mcp" makes the
+# full endpoint exactly http://host:8100/mcp/ (no path stacking).
+mcp_app = mcp.http_app(path="/")
 
 app = Starlette(
     routes=[
         Route("/health", health),
         Mount("/mcp", app=mcp_app),
     ],
+    lifespan=mcp_app.lifespan,
 )
