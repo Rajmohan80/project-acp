@@ -40,3 +40,4 @@ outputs.rtf
 ~$*.rtf 
 demo.log 
 demo_network.log 
+*.mp4 
